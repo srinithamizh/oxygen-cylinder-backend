@@ -1,0 +1,16 @@
+spring:
+  data:
+    mongodb:
+      username: admin
+      password: password
+      host: localhost
+      port: 27017
+      database: oxygen-cylinder
+      authentication-database: admin
+
+logging:
+  level:
+    org:
+      springframework:
+        data:
+          mongodb: DEBUG
