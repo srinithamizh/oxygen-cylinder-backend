@@ -18,6 +18,7 @@ public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private static final int EXPIRATION_DAYS = 90;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -41,6 +42,18 @@ public class UserService implements UserDetailsService {
         if (user.isEmpty()) {
             throw new UsernameNotFoundException(username);
         }
+
+        if (isPasswordExpired(user.get().getPasswordChangedAt())) {
+            user.get().setCredentialsNonExpired(false);
+            return user.get();
+        }
+
         return user.get();
+    }
+
+    private boolean isPasswordExpired(LocalDateTime passwordChangedAt) {
+        LocalDateTime currentDate = LocalDateTime.now();
+        LocalDateTime passwordExpirationDate = passwordChangedAt.plusDays(EXPIRATION_DAYS);
+        return currentDate.isAfter(passwordExpirationDate);
     }
 }
