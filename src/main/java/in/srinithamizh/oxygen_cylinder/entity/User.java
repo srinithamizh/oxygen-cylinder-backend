@@ -41,11 +41,13 @@ public class User implements UserDetails {
 
     private LocalDateTime passwordChangedAt;
     private LocalDateTime lastLoginAt;
+    private LocalDateTime accountLockedAt;
 
     private boolean isAccountNonExpired = true;
     private boolean isAccountNonLocked = true;
     private boolean isCredentialsNonExpired = true;
     private boolean isEnabled = true;
+    private int failedLoginAttempts = 0;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
