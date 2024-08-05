@@ -3,6 +3,8 @@ package in.srinithamizh.oxygen_cylinder.service;
 import in.srinithamizh.oxygen_cylinder.entity.Role;
 import in.srinithamizh.oxygen_cylinder.entity.User;
 import in.srinithamizh.oxygen_cylinder.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -16,6 +18,7 @@ import java.util.Set;
 @Service
 public class UserService implements UserDetailsService {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private static final int CREDENTIALS_EXPIRATION_DURATION_IN_DAYS = 90;
     private static final int ACCOUNT_UNLOCK_DURATION_IN_DAYS = 1;
     private static final int RESET_FAILED_LOGIN_ATTEMPTS = 0;
@@ -40,39 +43,46 @@ public class UserService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<User> user = findUserByUsername(username);
+        User user = findUserByUsername(username)
+                .orElseThrow(() -> {
+                    logger.error("Username {} is not found", username);
+                    return new UsernameNotFoundException(String.format("username '%s' is not found!", username));
+                });
 
-        if (user.isEmpty()) {
-            throw new UsernameNotFoundException(String.format("username '%s' is not found!", username));
+        if (!user.isAccountNonLocked() && isAccountLockedExpired(user)) {
+            logger.info("User Account unlocked for username: {}", username);
+            return unlockAccount(user);
         }
 
-        if (!user.get().isAccountNonLocked() && isAccountLockedExpired(user.get())) {
-            return unlockAccount(user.get());
+        if (isPasswordExpired(user.getPasswordChangedAt())) {
+            logger.info("User account credentials are expired for username: {}", username);
+            user.setCredentialsNonExpired(false);
+            return user;
         }
-
-        if (isPasswordExpired(user.get().getPasswordChangedAt())) {
-            user.get().setCredentialsNonExpired(false);
-            return user.get();
-        }
-
-        return user.get();
+        return user;
     }
 
     public void failedLogin(String username) {
-        Optional<User> user = findUserByUsername(username);
+        User user = findUserByUsername(username)
+                .orElseThrow(() -> {
+                    logger.error("Username {} is not found", username);
+                    return new UsernameNotFoundException(String.format("username '%s' is not found!", username));
+                });
 
-        if (user.isEmpty()) {
-            throw new UsernameNotFoundException(String.format("username '%s' is not found!", username));
-        }
+        int newFailureAttempts = user.getFailedLoginAttempts() + 1;
+        user.setFailedLoginAttempts(newFailureAttempts);
 
-        int newFailureAttempts = user.get().getFailedLoginAttempts() + 1;
-        user.get().setFailedLoginAttempts(newFailureAttempts);
+        logger.warn("Failed login attempts {} for username: {}", newFailureAttempts, username);
+
         if (newFailureAttempts >= 3) {
-            user.get().setAccountNonLocked(false);
-            user.get().setAccountLockedAt(LocalDateTime.now());
+            logger.warn("User account locked for username: {}", username);
+            user.setAccountNonLocked(false);
+            user.setAccountLockedAt(LocalDateTime.now());
         }
-        userRepository.save(user.get());
+        userRepository.save(user);
     }
+
+
 
     private boolean isAccountLockedExpired(User user) {
         LocalDateTime currentDate = LocalDateTime.now();

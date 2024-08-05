@@ -22,7 +22,7 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(request ->
                         request
-                                .requestMatchers("/login", "/register", "/error").permitAll()
+                                .requestMatchers("/login", "/register", "/reset-password", "/error").permitAll()
                                 .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
                 .formLogin(withDefaults())

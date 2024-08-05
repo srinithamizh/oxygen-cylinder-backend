@@ -4,8 +4,9 @@ services:
     container_name: mongo_db
     ports:
       - 27017:27017
+    restart: always
     volumes:
-      - mongo:/data
+      - mongo:/data/db
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
@@ -24,5 +25,6 @@ services:
       - ME_CONFIG_MONGODB_SERVER=mongodb
       - ME_CONFIG_BASICAUTH_USERNAME=default
       - ME_CONFIG_BASICAUTH_PASSWORD=password
+
 volumes:
-  mongo: {}
+  mongo: { }
